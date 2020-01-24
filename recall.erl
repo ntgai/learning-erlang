@@ -29,3 +29,30 @@ product(List) -> product(1, List).
 
 product(Res, []) -> Res.
 product(Res, [H|T]) -> product(Res * H, T).
+
+
+% List Comprehensions
+List = [1,2,4,8].
+Square = fun(Value) -> Value*Value end.
+Cube = fun(Value) -> math:pow(Value, 3) end.
+
+lists:map(Square, List).
+lists:map(Cube, List).
+
+[Square(Value) || Value <- List].
+[Value * Value || Value <- List].
+
+Four_bits = fun(Value) -> (Value<16) and (Value>=0) end.
+lists:filter(Four_bits, List).
+[Value || Value <- List, Value<16, Value>=0].
+
+Compare = fun(Value) -> Value > 10 end.
+lists:any(Compare, List) % true
+lists:all(Compare, List) % false
+lists:partition(Compare, List) % {[16,32], [1,2,4,8]}
+
+IsInt = fun(Value) -> is_integer(Value) end.
+lists:all(IsInt, List).
+
+lists:dropwhile(Compare, List). % [10, 16, 32]
+lists:takewhile(Compare, List). % [1, 2, 4, 8]
