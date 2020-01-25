@@ -43,5 +43,25 @@ report(Count) ->
 
 % If you want to see which processes are registered, you can use the regs()
 
-% 
+% register(test,Pid1).
+% NewProcess = whereis(process).
+% unregister(process)
+% but NewProcess ! "There?" Still works
+
+% Processes talk amongst themselves
+
+drop() ->
+	receive
+		{From, Planemo, Distance} ->
+			From ! {Planemo, Distance, fall_velocity(Planemo, Distance)},
+     	drop()
+ 	end.
+
+fall_velocity(earth, Distance) when Distance >= 0  -> math:sqrt(2 * 9.8 * Distance);
+fall_velocity(moon, Distance) when Distance >= 0 -> math:sqrt(2 * 1.6 * Distance);
+fall_velocity(mars, Distance) when Distance >= 0 -> math:sqrt(2 * 3.71 * Distance).
+
+% Pid1 = spawn(test,drop,[]).
+% Pid1 ! {self(), moon, 20}.
+% flush(). => Shell got {moon,20,8.0}
 

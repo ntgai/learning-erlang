@@ -1,6 +1,7 @@
 -module(recall).
 -export([factorial_recursion/1, factorial_iteration/1, fibonacci/1, product/1]).
 
+%%% ----------------------------------------------------------
 %% Factorial - recursion
 factorial_recursion(Number) -> factorial_recursion(Number, 1).
 factorial_recursion(Number, Result) when (Number == 0) or (Number == 1) -> Result;
@@ -30,7 +31,7 @@ product(List) -> product(1, List).
 product(Res, []) -> Res.
 product(Res, [H|T]) -> product(Res * H, T).
 
-
+%%% ----------------------------------------------------------
 % List Comprehensions
 List = [1,2,4,8].
 Square = fun(Value) -> Value*Value end.
@@ -56,3 +57,80 @@ lists:all(IsInt, List).
 
 lists:dropwhile(Compare, List). % [10, 16, 32]
 lists:takewhile(Compare, List). % [1, 2, 4, 8]
+
+
+%%% ----------------------------------------------------------
+% Process
+report() ->
+	receive
+		X -> io:format("Received ~p~n", [X])
+	end.
+
+% c(test).
+% Pid = spawn(test, report, []).
+% is_process_alive(Pid). -> True
+% Pid ! Hello -> Received Hello, Hello
+% is_process_alive(Pid). -> False
+
+report_without_terminated() ->
+	receive
+		X -> io:format("Received ~p~n", [X]),
+		report_without_terminated()
+	end.
+
+report2(Count) ->
+	NewCount = receive
+		X -> io:format("Received #~p: ~p~n", [Count,X]),
+			report2(Count + 1)
+	end,
+	report2(NewCount).
+
+% Pid = spawn(test, report2, [1]).
+% Pid ! "Hello". -> Received #1: "hello"
+% Pid ! "It's me". -> Received #2: "It is me"
+% Pid ! "I'm gonna be alright". -> Received #3: "I'm gonna be alright"
+
+% register(test,Pid1).
+% NewProcess = whereis(process).
+% unregister(process)
+% but NewProcess ! "There?" Still works
+
+% Processes talk amongst themselves
+-module(drop).
+-export([drop/0]).
+
+drop() ->
+	receive
+		{From, Planemo, Distance} ->
+			From ! {Planemo, Distance, fall_velocity(Planemo, Distance)},
+     	drop()
+ 	end.
+
+fall_velocity(earth, Distance) when Distance >= 0  -> math:sqrt(2 * 9.8 * Distance);
+fall_velocity(moon, Distance) when Distance >= 0 -> math:sqrt(2 * 1.6 * Distance);
+fall_velocity(mars, Distance) when Distance >= 0 -> math:sqrt(2 * 3.71 * Distance).
+
+
+-module(mph_drop).
+-export([mph_drop/0]).
+
+mph_drop() ->
+  Drop=spawn(drop,drop,[]),
+  convert(Drop).
+
+convert(Drop) ->
+	receive
+		{Planemo, Distance} ->
+     		Drop ! {self(), Planemo, Distance},
+     		convert(Drop);
+   		{Planemo, Distance, Velocity} ->
+     		MphVelocity = 2.23693629 * Velocity,
+     		io:format("On ~p, a fall of ~p meters yields a velocity of ~p mph.~n",
+     		[Planemo, Distance, MphVelocity]),
+     		convert(Drop)
+ 	end.
+
+
+% Pid1 = spawn(drop,drop,[]).
+% Pid1 ! {self(), moon, 20}.
+% flush(). => Shell got {moon,20,8.0}
