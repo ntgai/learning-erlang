@@ -115,22 +115,66 @@ fall_velocity(mars, Distance) when Distance >= 0 -> math:sqrt(2 * 3.71 * Distanc
 -export([mph_drop/0]).
 
 mph_drop() ->
-  Drop=spawn(drop,drop,[]),
-  convert(Drop).
+  	process_flag(trap_exit, true),
+ 	Drop=spawn_link(drop,drop,[]),
+  	convert(Drop).
 
 convert(Drop) ->
-	receive
-		{Planemo, Distance} ->
+ 	receive
+   		{Planemo, Distance} ->
      		Drop ! {self(), Planemo, Distance},
      		convert(Drop);
+   		{'EXIT', _Pid, _Reason} ->
+     		NewDrop=spawn_link(drop,drop,[]),
+     		convert(NewDrop);
    		{Planemo, Distance, Velocity} ->
-     		MphVelocity = 2.23693629 * Velocity,
-     		io:format("On ~p, a fall of ~p meters yields a velocity of ~p mph.~n",
-     		[Planemo, Distance, MphVelocity]),
-     		convert(Drop)
+     		MphVelocity= 2.23693629 * Velocity,
+     			io:format("On ~p, a fall of ~p meters yields a velocity of ~p mph.~n",
+ 					[Planemo, Distance, MphVelocity]),
+     	convert(Drop)
  	end.
-
 
 % Pid1 = spawn(drop,drop,[]).
 % Pid1 ! {self(), moon, 20}.
 % flush(). => Shell got {moon,20,8.0}
+
+% observer:start().
+
+%%% ----------------------------------------------------------
+% Exception, Error, Debugging
+
+-module(exception_debug).
+-export([fall_velocity/2]).
+
+fall_velocity(Planemo, Distance) ->
+	Gravity = case Planemo of
+		earth -> 9.8;
+		moon -> 1.6
+	end,
+
+	try math:sqrt(2 * Gravity * Distance)
+	catch
+		error: Error -> {error, Error};
+		throw: Exception -> {error, Exception}
+	end.
+
+%% exception_debug:fall_velocity(earth, 20).
+%% 19.79898987322333
+%% exception_debug:fall_velocity(earth, -20).
+%% {error,badarith}
+
+% Logging
+error_logger:info_msg("The value is ~p. ~n",[360]).
+error_logger:warning_msg("Connection lost; will retry.").
+error_logger:error_msg("Unable to read database.~n").
+
+% Debugging
+c(drop, [debug_info]).
+debugger:start().
+
+% Tracing Messages
+c(drop).
+c(mph_drop).
+dbg:tracer().
+Pid = spawn(mph_drop, mph_drop, []).
+dbg:p(Pid, m)
